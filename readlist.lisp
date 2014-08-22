@@ -36,18 +36,34 @@
 	        ((null line))
 	      (setq *vals* (cons (split-by-char line #\=) *vals*))))
 
-(defmacro cli (&rest forms)
-  `(cond ,@(loop for (cli-args action)
-	      in forms
-	      ;;for (lits idents) = (partition #'stringp cli-args)
-	      ;;for idxlits = (remove-if-not (lambda (val) (stringp (car val)))
-	      ;;		       (mapcar-with-index #'cons cli-args))
-	      collect `(list 1 ,action)))
-  )
+(defmacro match (args &rest forms)
+  (let ((args-name (gensym "match-args")) (args-len-name (gensym "match-args-len")))
+    `(let* ((,args-name ,args) (,args-len-name (length ,args-name)))
+       (cond ,@(loop for (match action)
+		  in forms
+		    
+		  for (idxlits idxidents) = (partition (lambda (val) (stringp (cadr val)))
+						       (mapcar-with-index #'list match))
+		  ;; generate (and ...) for the literals:
+		  for lit-conds = (mapcar (lambda (idx-lit)
+					    (destructuring-bind (idx lit) idx-lit 
+					      `(equal (nth ,idx ,args-name) ,lit)))
+					  idxlits)
+		  ;;
+		  for conds = `(and (= ,args-len-name ,(length match))
+				    ,@lit-conds)
+		  ;; then generate (let)s
+		  for body = `(let ,(mapcar (lambda (idx-ident)
+					      (destructuring-bind (idx ident) idx-ident
+						`(,ident (nth ,idx ,args-name))))
+					    idxidents)
+				,action)
+		  collect `(,conds ,body))
+	     (t (error "Unable to deal with it."))))))
 
-(cli
+(match *args*
  (("list") (format t "YO"))
- (("incr" name) (format t "~a" name))
+ (("change" name) (format t "Typed name ~a" name))
  )
 
 ;; terrible handling of argv :(
