@@ -6,6 +6,24 @@
      collect (subseq string i j)
      while j))
 
+(defun range (max &key (min 0) (step 1))
+  (loop for i from min below max by step collect i))
+
+(defun mapcar-with-index (fn lst)
+  (mapcar fn (range (length lst)) lst))
+
+(defun filter (fn lst)
+  (remove nil (mapcar fn lst)))
+
+(defun partition (fn lst)
+  (labels ((rec (lst truthies falsies)
+	     (if (null lst)
+		 (list truthies falsies)
+		 (if (funcall fn (car lst))
+		     (rec (cdr lst) (cons (car lst) truthies) falsies)
+		     (rec (cdr lst) truthies (cons (car lst) falsies))))))
+    (rec lst '() '())))
+
 ;; program
 (defvar *args* (cdr *posix-argv*)) ; YMMV. need to cdr to remove `sbcl`
 (defvar *vals* '())
@@ -19,8 +37,12 @@
 	      (setq *vals* (cons (split-by-char line #\=) *vals*))))
 
 (defmacro cli (&rest forms)
-  `(progn ,@(loop :for (cli-args action) :in forms
-		 :collect `(format t "~a~%" ,(car cli-args))))
+  `(cond ,@(loop for (cli-args action)
+	      in forms
+	      ;;for (lits idents) = (partition #'stringp cli-args)
+	      ;;for idxlits = (remove-if-not (lambda (val) (stringp (car val)))
+	      ;;		       (mapcar-with-index #'cons cli-args))
+	      collect `(list 1 ,action)))
   )
 
 (cli
