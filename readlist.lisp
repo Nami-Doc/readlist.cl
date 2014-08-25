@@ -39,7 +39,7 @@
 (defmacro match (args &rest forms)
   (let ((args-name (gensym "match-args")) (args-len-name (gensym "match-args-len")))
     `(let* ((,args-name ,args) (,args-len-name (length ,args-name)))
-       (cond ,@(loop for (match action)
+       (cond ,@(loop for (match . actions)
 		  in forms
 		    
 		  for (idxlits idxidents) = (partition (lambda (val) (stringp (cadr val)))
@@ -57,21 +57,16 @@
 					      (destructuring-bind (idx ident) idx-ident
 						`(,ident (nth ,idx ,args-name))))
 					    idxidents)
-				,action)
+				,@actions)
 		  collect `(,conds ,body))
 	     (t (error "Unable to deal with it."))))))
 
 (match *args*
- (("list") (format t "YO"))
+ (("list")
+  (format t "Current List:~%")
+  (loop for (name val) in *vals*
+       do (format t "  ~a: ~a~%" name val)))
+ (("add" name)
+  (format t "Adding ~a" name))
  (("change" name) (format t "Typed name ~a" name))
  )
-
-;; terrible handling of argv :(
-;;(let ((type (car *args*)))
-;;  (cond
-;;    ((equal "list" type)
-;;     (loop for (key val) in *vals* do
-;;	  (format t "Name: ~a. Currently at: ~a~%" key val)))
-;;    ((equal "incr" type)
-;;     )
-;;  ))
