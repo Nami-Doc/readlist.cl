@@ -49,10 +49,10 @@
 					    (destructuring-bind (idx lit) idx-lit 
 					      `(equal (nth ,idx ,args-name) ,lit)))
 					  idxlits)
-		  ;;
+		  ;; add length checking and join the lit-conds by "AND"
 		  for conds = `(and (= ,args-len-name ,(length match))
 				    ,@lit-conds)
-		  ;; then generate (let)s
+		  ;; then generate the let to bind identifiers
 		  for body = `(let ,(mapcar (lambda (idx-ident)
 					      (destructuring-bind (idx ident) idx-ident
 						`(,ident (nth ,idx ,args-name))))
