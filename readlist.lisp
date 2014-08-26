@@ -29,6 +29,14 @@
 (defvar *vals* '())
 (defvar *file* "./list.txt")
 
+(defun save-list ()
+   (with-open-file (str *file*
+			:direction :output
+			:if-exists :supersede
+			:if-does-not-exist :create)
+     (format str "~{~A~^~%~}"
+	     (mapcar (lambda (cons) (format nil "~a=~a" (car cons) (cadr cons))) *vals*))))
+
 ;; read our list
 (with-open-file (stream *file*)
       (do ((line (read-line stream nil)
@@ -61,12 +69,43 @@
 		  collect `(,conds ,body))
 	     (t (error "Unable to deal with it."))))))
 
+(defun const (val)
+  (lambda (_) val))
+
+(defun update-if (lst cond morph)
+  (mapcar (lambda (cons) (if (funcall cond cons)
+			     (funcall morph cons)
+			     cons)) lst))
+
+(defun find-val (lst val &key (compare #'equal) (morph #'identity))
+  (find-if (lambda (cons) (funcall compare val (funcall morph cons))) lst)) 
+
+(defun add-to-list (name num)
+  (if (find-val *vals* name :morph #'car)
+      (format t "~a is already there~%" name)
+      (progn
+	(format t "Adding ~a~%" name)
+	(setq *vals* (cons (list name num) *vals*))
+	(save-list))))
+
+(defun change-list-val (name num)
+  (if (not (find-val *vals* name :morph #'car))
+    (format t "~a is not currently tracked~%" name) ;; TODO usage help?
+    (progn
+      (format t "Incrementing ~a by ~a~%" name num)
+      (setq *vals* (update-if *vals*
+			      (lambda (cons) (equal (car cons) name))
+			      (lambda (cons) (list (car cons) (+ num (cadr cons))))))
+      (save-list))))
+
 (match *args*
  (("list")
   (format t "Current List:~%")
-  (loop for (name val) in *vals*
-       do (format t "  ~a: ~a~%" name val)))
- (("add" name)
-  (format t "Adding ~a" name))
- (("change" name) (format t "Typed name ~a" name))
+  (loop for (name num) in *vals*
+       do (format t "  ~a: ~a~%" name num)))
+ (("add" name) (add-to-list name 1))
+ (("add" name num) (add-to-list name (the integer num)))
+ (("inc" name) (change-list-val name 1))
+ (("add" name num) (change-list-val name num))
+ ;; TODO (() (usage-help))
  )
