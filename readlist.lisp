@@ -6,6 +6,10 @@
      collect (subseq string i j)
      while j))
 
+(defun string->integer (str)
+  (declare (type string str))
+  (nth-value 0 (parse-integer str)))
+
 (defun range (max &key (min 0) (step 1))
   (loop for i from min below max by step collect i))
 
@@ -23,6 +27,17 @@
 		     (rec (cdr lst) (cons (car lst) truthies) falsies)
 		     (rec (cdr lst) truthies (cons (car lst) falsies))))))
     (rec lst '() '())))
+
+(defun const (val)
+  (lambda (_) val))
+
+(defun update-if (lst cond morph)
+  (mapcar (lambda (cons) (if (funcall cond cons)
+			     (funcall morph cons)
+			     cons)) lst))
+
+(defun find-val (lst val &key (compare #'equal) (morph #'identity))
+  (find-if (lambda (cons) (funcall compare val (funcall morph cons))) lst)) 
 
 ;; program
 (defvar *args* (cdr *posix-argv*)) ; YMMV. need to cdr to remove `sbcl`
@@ -42,7 +57,8 @@
       (do ((line (read-line stream nil)
 		 (read-line stream nil)))
 	        ((null line))
-	      (setq *vals* (cons (split-by-char line #\=) *vals*))))
+	(destructuring-bind (name num) (split-by-char line #\=)
+	  (setq *vals* (cons (list name (string->integer num)) *vals*)))))
 
 (defmacro match (args &rest forms)
   (let ((args-name (gensym "match-args")) (args-len-name (gensym "match-args-len")))
@@ -69,17 +85,6 @@
 		  collect `(,conds ,body))
 	     (t (error "Unable to deal with it."))))))
 
-(defun const (val)
-  (lambda (_) val))
-
-(defun update-if (lst cond morph)
-  (mapcar (lambda (cons) (if (funcall cond cons)
-			     (funcall morph cons)
-			     cons)) lst))
-
-(defun find-val (lst val &key (compare #'equal) (morph #'identity))
-  (find-if (lambda (cons) (funcall compare val (funcall morph cons))) lst)) 
-
 (defun add-to-list (name num)
   (if (find-val *vals* name :morph #'car)
       (format t "~a is already there~%" name)
@@ -104,8 +109,8 @@
   (loop for (name num) in *vals*
        do (format t "  ~a: ~a~%" name num)))
  (("add" name) (add-to-list name 1))
- (("add" name num) (add-to-list name (the integer num)))
+ (("add" name num) (add-to-list name (string->integer num)))
  (("inc" name) (change-list-val name 1))
- (("add" name num) (change-list-val name num))
+ ;;(("set" name num) (change-list-val name (string->integer num)))
  ;; TODO (() (usage-help))
  )
