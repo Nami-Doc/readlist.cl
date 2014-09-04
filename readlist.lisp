@@ -42,9 +42,6 @@
 
 (set-macro-character #\λ #'λ-reader)
 
-(defun find-val (lst val &key (compare #'equal) (morph #'identity))
-  (find-if (lambda (cons) (funcall compare val (funcall morph cons))) lst)) 
-
 ;; program
 (defvar *args* (cdr *posix-argv*)) ; YMMV. need to cdr to remove `sbcl`
 (defvar *vals* '())
@@ -100,13 +97,13 @@
 
 (defun compose (&rest fns)
   (destructuring-bind (fn1 . rest) (reverse fns)
-      #'(lambda (&rest args)
-	  (reduce #'(lambda (v f) (funcall f v))
-		  rest
-		  :initial-value (apply fn1 args)))))
+    #'(lambda (&rest args)
+	(reduce #'(lambda (v f) (funcall f v))
+		rest
+		:initial-value (apply fn1 args)))))
 
 (defun add-to-list (name num)
-  (if (find-val *vals* name :morph #'car)
+  (if (find name *vals* :test #'equal :key #'car)
       (format t "~a is already there~%" name)
       (progn
 	(format t "Adding ~a~%" name)
@@ -114,7 +111,7 @@
 	(save-list))))
 
 (defun change-list-val (name num)
-  (if (not (find-val *vals* name :morph #'car))
+  (if (not (find name *vals* :test #'equal :key #'car))
     (format t "~a is not currently tracked~%" name) ;; TODO usage help?
     (progn
       (format t "Incrementing ~a by ~a~%" name num)
