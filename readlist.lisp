@@ -67,21 +67,26 @@
 	  (setq *vals* (cons (make-book :name name :num (string->integer num)) *vals*)))))
 
 (defmacro match (args &rest forms)
-  (let ((args-name (gensym "match-args")) (args-len-name (gensym "match-args-len")))
+  (let ((args-name (gensym)) (args-len-name (gensym)))
     `(let* ((,args-name ,args) (,args-len-name (length ,args-name)))
        (cond ,@(loop for (match . actions)
 		  in forms
 		    
-		  for (idxlits idxidents) = (partition (lambda (val) (stringp (cadr val)))
-						       (mapcar-with-index #'list match))
+		  for (idxlits idxidents) = (if (eq match 't)
+						(list nil nil) ; no binding no literal ...
+						(partition (lambda (val) (stringp (cadr val)))
+						       (mapcar-with-index #'list match)))
+		    
 		  ;; generate (and ...) for the literals:
 		  for lit-conds = (mapcar (lambda (idx-lit)
 					    (destructuring-bind (idx lit) idx-lit 
 					      `(equal (nth ,idx ,args-name) ,lit)))
 					  idxlits)
 		  ;; add length checking and join the lit-conds by "AND"
-		  for conds = `(and (= ,args-len-name ,(length match))
-				    ,@lit-conds)
+		  for conds = (if (eq match 't)
+				  't
+				  `(and (= ,args-len-name ,(length match))
+					,@lit-conds))
 		  ;; then generate the let to bind identifiers
 		  for body = `(let ,(mapcar (lambda (idx-ident)
 					      (destructuring-bind (idx ident) idx-ident
@@ -123,11 +128,11 @@
 (match *args*
  (("list")
   (format t "Current List:~%")
-  (loop for (name num) in *vals*
-       do (format t "  ~a: ~a~%" name num)))
+  (loop for book in *vals*
+       do (format t "  ~a: ~a~%" (book-name book) (book-num book))))
  (("add" name) (add-to-list name 1))
  (("add" name num) (add-to-list name (string->integer num)))
  (("inc" name) (change-list-val name 1))
  ;;(("set" name num) (change-list-val name (string->integer num)))
- ;; TODO (() (usage-help))
+ (t (format t "  Usage:~%list~%add <name>~%add <name> <num>~%inc <name>~%"))
  )
