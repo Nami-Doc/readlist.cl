@@ -36,6 +36,12 @@
 			     (funcall morph cons)
 			     cons)) lst))
 
+(defun λ-reader (stream char)
+    (declare (ignore char stream))
+      'LAMBDA)
+
+(set-macro-character #\λ #'λ-reader)
+
 (defun find-val (lst val &key (compare #'equal) (morph #'identity))
   (find-if (lambda (cons) (funcall compare val (funcall morph cons))) lst)) 
 
@@ -50,7 +56,10 @@
 			:if-exists :supersede
 			:if-does-not-exist :create)
      (format str "~{~A~^~%~}"
-	     (mapcar (lambda (cons) (format nil "~a=~a" (car cons) (cadr cons))) *vals*))))
+	     (mapcar (λ (cons) (format nil "~a=~a"
+				       (book-name cons) (book-num cons))) *vals*))))
+
+(defstruct book name num)
 
 ;; read our list
 (with-open-file (stream *file*)
@@ -58,7 +67,7 @@
 		 (read-line stream nil)))
 	        ((null line))
 	(destructuring-bind (name num) (split-by-char line #\=)
-	  (setq *vals* (cons (list name (string->integer num)) *vals*)))))
+	  (setq *vals* (cons (make-book :name name :num (string->integer num)) *vals*)))))
 
 (defmacro match (args &rest forms)
   (let ((args-name (gensym "match-args")) (args-len-name (gensym "match-args-len")))
@@ -85,12 +94,23 @@
 		  collect `(,conds ,body))
 	     (t (error "Unable to deal with it."))))))
 
+(defun curry (fn &rest initial-args)
+  (lambda (&rest args)
+    (apply fn (append initial-args args))))
+
+(defun compose (&rest fns)
+  (destructuring-bind (fn1 . rest) (reverse fns)
+      #'(lambda (&rest args)
+	  (reduce #'(lambda (v f) (funcall f v))
+		  rest
+		  :initial-value (apply fn1 args)))))
+
 (defun add-to-list (name num)
   (if (find-val *vals* name :morph #'car)
       (format t "~a is already there~%" name)
       (progn
 	(format t "Adding ~a~%" name)
-	(setq *vals* (cons (list name num) *vals*))
+	(setq *vals* (cons (make-book :name name :num num) *vals*))
 	(save-list))))
 
 (defun change-list-val (name num)
