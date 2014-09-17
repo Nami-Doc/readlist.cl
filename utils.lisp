@@ -73,7 +73,7 @@
 		  for body = `(let ,(mapcar (lambda (idx-ident)
 					      (destructuring-bind (idx ident) idx-ident
 						`(,ident (nth ,idx ,args-name))))
-					    idxidents)
+					    (remove '_ idxidents :key #'second))
 				,@actions)
 		  collect `(,conds ,body))
 	     (t (error "Unable to deal with it."))))))
