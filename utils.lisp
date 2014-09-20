@@ -78,6 +78,14 @@
 		  collect `(,conds ,body))
 	     (t (error "Unable to deal with it."))))))
 
+(defmacro defun-match (name &rest conds)
+  `(defun ,name (&rest args)
+     (match args ,@conds)))
+
+(defmacro lambda-match (&rest conds)
+  `(lambda (&rest args)
+     (match args ,@conds)))
+
 (defun curry (fn &rest initial-args)
   (lambda (&rest args)
     (apply fn (append initial-args args))))
@@ -88,3 +96,4 @@
 	(reduce #'(lambda (v f) (funcall f v))
 		rest
 		:initial-value (apply fn1 args)))))
+
