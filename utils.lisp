@@ -34,7 +34,7 @@
     (rec lst '() '())))
 
 (defun const (val)
-  (lambda (_) val))
+  (lambda (&rest _) val))
 
 (defun update-if (lst cond morph)
   (mapcar (lambda (cons) (if (funcall cond cons)
@@ -47,14 +47,15 @@
 
 (set-macro-character #\λ #'λ-reader)
 
-(defmacro match (args &rest forms)
+(defmacro match (args &rest forms &key error-message)
   (let ((args-name (gensym)) (args-len-name (gensym)))
     `(let* ((,args-name ,args) (,args-len-name (length ,args-name)))
-       (cond ,@(loop for (match . actions)
+       (cond ,@(loop
+       		  for (match . actions)
 		  in forms
 		    
 		  for (idxlits idxidents) = (if (eq match 't)
-						(list nil nil) ; no binding no literal ...
+						(list nil nil) ; no bindings no literals ...
 						(partition (lambda (val)
 							     (not (symbolp (cadr val))))
 						       (mapcar-with-index #'list match)))
@@ -64,19 +65,21 @@
 					    (destructuring-bind (idx lit) idx-lit 
 					      `(equal (nth ,idx ,args-name) ,lit)))
 					  idxlits)
-		  ;; add length checking and join the lit-conds by "AND"
+		  ;; add length checking and join the lit-conds with "AND"
 		  for conds = (if (eq match 't)
 				  't
 				  `(and (= ,args-len-name ,(length match))
 					,@lit-conds))
+		  ;; only value-matching idents
+		  for matching-idxidents = (remove '_ idxidents :key #'second)
 		  ;; then generate the let to bind identifiers
 		  for body = `(let ,(mapcar (lambda (idx-ident)
 					      (destructuring-bind (idx ident) idx-ident
 						`(,ident (nth ,idx ,args-name))))
-					    (remove '_ idxidents :key #'second))
+					    matching-idxidents)
 				,@actions)
 		  collect `(,conds ,body))
-	     (t (error "Unable to deal with it."))))))
+	     (t (error ,(or error-message "Match failed.")))))))
 
 (defmacro defun-match (name &rest conds)
   `(defun ,name (&rest args)
