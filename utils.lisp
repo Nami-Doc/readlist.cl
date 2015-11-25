@@ -72,7 +72,7 @@
                                   `(and (= ,args-len-name ,(length match))
                                         ,@lit-conds))
                   ;; only value-matching idents
-                  for matching-idxidents = (remove '_ idxidents :key #'second)
+                  for matching-idxidents = (remove 'nil idxidents :key #'second)
                   ;; then generate the let to bind identifiers
                   for body =
                     `(let ,(mapcar (lambda (idx-ident)

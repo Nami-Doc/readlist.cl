@@ -69,6 +69,6 @@
        (("inc" name) (change-list-val name 1))
        (("dec" name) (change-list-val name -1))
        (("set" name num) (set-list-val name (string->uint num)))
-       (("mdrr" _ _) (format t "yoo"))
+       (("mdrr" nil nil) (format t "yoo"))
        (t (format t "  Usage:~%list~%add <name>~%add <name> <num>~%inc <name>~%"))
        )
