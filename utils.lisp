@@ -50,38 +50,39 @@
 (defmacro match (args &rest forms)
   (let ((args-name (gensym)) (args-len-name (gensym)))
     `(let* ((,args-name ,args) (,args-len-name (length ,args-name)))
-       (cond ,@(loop
-                  for (match . actions)
-                  in forms
+       (cond
+         ,@(loop
+              :for (match . actions)
+              :in forms
 
-                  for (idxlits idxidents) =
-                    (if (eq match 't)
-                        (list nil nil) ; no bindings no literals ...
-                        (partition (lambda (val)
-                                     (not (symbolp (cadr val))))
-                                   (mapcar-with-index #'list match)))
+              :for (idxlits idxidents) =
+                (if (eq match 't)
+                    (list nil nil) ; no bindings no literals ...
+                    (partition (lambda (val)
+                                (not (symbolp (cadr val))))
+                                (mapcar-with-index #'list match)))
 
-                  ;; generate (and ...) for the literals:
-                  for lit-conds = (mapcar (lambda (idx-lit)
-                                            (destructuring-bind (idx lit) idx-lit
-                                              `(equal (nth ,idx ,args-name) ,lit)))
-                                          idxlits)
-                  ;; add length checking and join the lit-conds with "AND"
-                  for conds = (if (eq match 't)
-                                  't
-                                  `(and (= ,args-len-name ,(length match))
-                                        ,@lit-conds))
-                  ;; only value-matching idents
-                  for matching-idxidents = (remove 'nil idxidents :key #'second)
-                  ;; then generate the let to bind identifiers
-                  for body =
-                    `(let ,(mapcar (lambda (idx-ident)
-                                     (destructuring-bind (idx ident) idx-ident
-                                       `(,ident (nth ,idx ,args-name))))
-                                   matching-idxidents)
-                       ,@actions)
-                  collect `(,conds ,body))
-						 (t (error "Match failed"))))))
+              ;; generate (and ...) for the literals:
+              :for lit-conds = (mapcar (lambda (idx-lit)
+                                         (destructuring-bind (idx lit) idx-lit
+                                           `(equal (nth ,idx ,args-name) ,lit)))
+                                       idxlits)
+              ;; add length checking and join the lit-conds with "AND"
+              :for conds = (if (eq match 't)
+                               't
+                               `(and (= ,args-len-name ,(length match))
+                                     ,@lit-conds))
+              ;; only value-matching idents
+              :for matching-idxidents = (remove 'nil idxidents :key #'second)
+              ;; then generate the let to bind identifiers
+              :for body =
+                `(let ,(mapcar (lambda (idx-ident)
+                                (destructuring-bind (idx ident) idx-ident
+                                    `(,ident (nth ,idx ,args-name))))
+                                matching-idxidents)
+                    ,@actions)
+              :collect `(,conds ,body))
+         (t (error "Match failed"))))))
 
 (defmacro defun-match (name &rest conds)
   `(defun ,name (&rest args)
