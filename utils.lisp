@@ -1,4 +1,3 @@
-;; helpers
 (defun split-by-char (string char)
   (loop :for i = 0 :then (1+ j)
      :as j = (position char string :start i)

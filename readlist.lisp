@@ -2,12 +2,12 @@
 (require "UTILS" "utils")
 
 ;; program
+(defconstant +file+ "./list.txt")
 (defvar *args* (cdr *posix-argv*)) ; YMMV. need to cdr to remove `sbcl`
 (defvar *vals* '())
-(defvar *file* "./list.txt")
 
 (defun save-list ()
-  (with-open-file (str *file*
+  (with-open-file (str +file+
                        :direction :output
                        :if-exists :supersede
                        :if-does-not-exist :create)
@@ -21,7 +21,7 @@
 (defstruct book name num)
 
 ;; read our list
-(with-open-file (stream *file*)
+(with-open-file (stream +file+)
   (do ((line (read-line stream nil)
              (read-line stream nil)))
       ((null line))
