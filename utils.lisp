@@ -8,6 +8,9 @@
   (declare (type string str))
   (nth-value 0 (parse-integer str)))
 
+(defmacro lambda% (body)
+  `(lambda (%) ,body))
+
 (defun string->uint (str)
   (let ((num (string->integer str)))
     (if (>= num 0)

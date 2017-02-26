@@ -36,27 +36,30 @@
         (setq *vals* (cons (make-book :name name :num num) *vals*))
         (save-list))))
 
+(defun book-num-mutator (mutator)
+  (lambda (book)
+    (make-book :name (book-name book)
+               :num (funcall mutator (book-num book)))))
+
 (defun set-list-val (name num)
   (format t "Updating ~a to ~a~%" name num)
   (setq *vals* (update-if *vals*
-                          (lambda (book) (equal (book-name book) name))
-                          (lambda (book) ;; TODO: update-book book :num X?
-                            (make-book :name (book-name book)
-                                       :num  num))))
+                          (lambda% (equal (book-name %) name))
+                          (book-num-mutator (const num))))
   (save-list))
 
 (defun change-list-val (name num)
   (if (not (find name *vals* :test #'equal :key #'book-name))
-      (format t "~a is not currently tracked~%" name) ;; TODO usage help?
+      (format t "~a is not currently tracked~%" name)
       (progn
         (format t "Incrementing ~a by ~a~%" name num)
-        (setq *vals* (update-if *vals*
-                                (lambda (book) (and
-                                                (equal (book-name book) name)
-                                                (>= (book-num book) 0)))
-                                (lambda (book)
-                                  (make-book :name (book-name book)
-                                             :num  (+ num (book-num book))))))
+        (setq *vals*
+              (update-if
+               *vals*
+               (lambda% (and
+                         (equal (book-name %) name)
+                         (>= (book-num %) 0)))
+               (book-num-mutator (lambda% (+ num %)))))
         (save-list))))
 
 (match *args*
