@@ -102,7 +102,14 @@
 
 (defun compose (&rest fns)
   (destructuring-bind (fn1 . rest) (reverse fns)
-    #'(lambda (&rest args)
-				(reduce #'(lambda (v f) (funcall f v))
-								rest
-								:initial-value (apply fn1 args)))))
+    (lambda (&rest args)
+      (reduce #'(lambda (v f) (funcall f v))
+              rest
+              :initial-value (apply fn1 args)))))
+
+(defmacro defstruct! (name &rest fields)
+  (let ((slot-macro-name (intern (format nil "WITH-~:@(~a~)-SLOTS" name))))
+    `(progn
+       (defstruct ,name ,@fields)
+       (defmacro ,slot-macro-name (o &rest body)
+         `(with-slots ,',fields ,o ,@body)))))
