@@ -33,7 +33,9 @@
     (rec lst '() '())))
 
 (defun const (val)
-  (lambda (&rest _) val))
+  (lambda (&rest _)
+    (declare (ignore _))
+    val))
 
 (defun update-if (lst cond morph)
   (mapcar (lambda (cons) (if (funcall cond cons)
